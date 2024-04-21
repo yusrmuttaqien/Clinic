@@ -13,6 +13,10 @@
 
 - Pastikan JDK terinstall di sistem dan clone repository
 
+- Lakukan import database menggunakan file `db/Final Clinic.sql`, setelah sukes import database;
+
+- Lakukan penyesuaian URL dan kredensial database pada file `Database.java` pada line ke-10 hingga line ke-12
+
 - Buka terminal di direktori hasil clone
 
 - Compile dan jalankan program menggunakan perintah dibawah ini
