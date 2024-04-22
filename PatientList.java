@@ -14,14 +14,23 @@ import javafx.scene.layout.VBox;
 
 public class PatientList {
 
-  private VBox mainPane = new VBox();
   private TableView<Patient> tableview = new TableView<Patient>();
-  private Database db;
+  private VBox mainPane = new VBox();
+  private Notification notification;
   private AddPatient addPatient;
+  private Database db;
 
-  public PatientList(Database db, AddPatient addPatient) {
+  private Button update;
+  private Button delete;
+
+  public PatientList(
+    Database db,
+    AddPatient addPatient,
+    Notification notification
+  ) {
     this.db = db;
     this.addPatient = addPatient;
+    this.notification = notification;
 
     render();
     updateList();
@@ -68,37 +77,57 @@ public class PatientList {
     // #region action
     HBox controlWrapper = new HBox();
 
-    Button update = new Button("Perbarui data");
+    update = new Button("Perbarui data");
     update.disableProperty().set(true);
     update.setOnAction(e -> {
       Patient activePatient = tableview.getFocusModel().getFocusedItem();
 
-      addPatient.refocus(activePatient);
+      if (notification.getStage().isShowing()) {
+        notification.getStage().requestFocus();
+      } else {
+        addPatient.refocus(activePatient);
+      }
     });
     controlWrapper.getChildren().add(update);
 
-    Button delete = new Button("Hapus data");
+    delete = new Button("Hapus data");
     delete.disableProperty().set(true);
     delete.setOnAction(e -> {
       String activeNik = tableview.getFocusModel().getFocusedItem().getNik();
 
-      try {
-        db.deletePatient(activeNik);
-        rerenderButtons(update, delete, true);
-        updateList();
-      } catch (SQLException v) {
-        // TODO: Use notification pane
-        System.out.println("Error when deleting data: " + v.getMessage());
+      if (addPatient.getStage().isShowing()) {
+        addPatient.getStage().requestFocus();
+      } else {
+        notification.refocus(
+          "Daftar Pasien",
+          "Konfirmasi hapus data",
+          "Apakah anda yakin ingin menghapus data dengan NIK: " +
+          activeNik +
+          "?",
+          () -> {
+            try {
+              db.deletePatient(activeNik);
+              rerenderButtons(true);
+              updateList();
+            } catch (SQLException v) {
+              notification.refocus(
+                "Daftar Pasien",
+                "Gagal menghapus data",
+                "Data dengan NIK: " +
+                activeNik +
+                " gagal dihapus dari database. Error: " +
+                v.getMessage()
+              );
+            }
+          },
+          true
+        );
       }
     });
     controlWrapper.getChildren().add(delete);
 
-    tableview
-      .onMouseClickedProperty()
-      .setValue(e -> rerenderButtons(update, delete, false));
-    tableview
-      .onKeyPressedProperty()
-      .setValue(e -> rerenderButtons(update, delete, false));
+    tableview.onMouseClickedProperty().setValue(e -> rerenderButtons(false));
+    tableview.onKeyPressedProperty().setValue(e -> rerenderButtons(false));
 
     controlWrapper.setSpacing(10);
     controlWrapper.setAlignment(Pos.CENTER);
@@ -112,7 +141,7 @@ public class PatientList {
     );
   }
 
-  public void rerenderButtons(Button update, Button delete, boolean isReset) {
+  public void rerenderButtons(boolean isReset) {
     if (isReset) {
       update.setText("Perbarui data");
       update.disableProperty().set(true);
@@ -143,6 +172,7 @@ public class PatientList {
     try {
       List<Patient> patients = db.getAllPatients();
       patients.forEach(e -> tableview.getItems().add(e));
+      rerenderButtons(true);
     } catch (SQLException e) {
       System.out.println("Error when retriving data: " + e.getMessage());
     }

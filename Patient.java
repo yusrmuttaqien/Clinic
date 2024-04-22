@@ -4,7 +4,7 @@ import java.time.format.DateTimeFormatter;
 public class Patient {
 
   private String name;
-  private String nik; // using string because int could be requires big int
+  private String nik;
   private String address;
   private String birth;
 

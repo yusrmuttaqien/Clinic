@@ -15,14 +15,15 @@ import javafx.stage.Stage;
 
 public class AddPatient extends Application {
 
+  private Stage primaryStage = new Stage();
   private Patient activePatient = null;
-  private Stage primaryStage;
   private double labelWidth = 100;
+  private Notification notification;
   private Database db;
 
-  public AddPatient(Database db, Stage primaryStage) {
+  public AddPatient(Database db, Notification notification) {
     this.db = db;
-    this.primaryStage = primaryStage;
+    this.notification = notification;
   }
 
   public void start(Stage primaryStage) {
@@ -84,9 +85,13 @@ public class AddPatient extends Application {
         if (patient != null) {
           try {
             commit(patient);
-          } catch (Exception ex) {
-            // TODO: Use notification pane
-            System.out.println("Error saving patient: " + ex.getMessage());
+            notification.refocus(
+              "Tambah Pasien",
+              "Berhasil menambah pasien baru",
+              "Data pasien baru berhasil disimpan"
+            );
+          } catch (Exception v) {
+            notifyError(v);
           }
         }
       });
@@ -106,9 +111,8 @@ public class AddPatient extends Application {
         try {
           commit(patient);
           primaryStage.close();
-        } catch (Exception ex) {
-          // TODO: Use notification pane
-          System.out.println("Error saving patient: " + ex.getMessage());
+        } catch (Exception v) {
+          notifyError(v);
         }
       }
     });
@@ -137,11 +141,39 @@ public class AddPatient extends Application {
     Scene scene = new Scene(mainPane);
 
     primaryStage.setResizable(false);
-    primaryStage.setX(60);
-    primaryStage.setY(100);
     primaryStage.setScene(scene);
     primaryStage.setTitle("Tambah pasien");
-    primaryStage.show();
+
+    if (primaryStage.isShowing()) {
+      primaryStage.requestFocus();
+    } else {
+      primaryStage.setX(60);
+      primaryStage.setY(100);
+      primaryStage.show();
+    }
+  }
+
+  public void notifyError(Exception e) {
+    boolean isUpdating = activePatient != null;
+    String title;
+    String action;
+
+    if (isUpdating) {
+      title = "memperbarui pasien";
+      action = "memperbarui data pasien dengan NIK: " + activePatient.getNik();
+    } else {
+      title = "menambah pasien";
+      action = "menambah data pasien baru";
+    }
+
+    notification.refocus(
+      "Tambah Pasien",
+      "Gagal " + title,
+      "Gagal " +
+      action +
+      ". Silakan cek kembali data anda. Galat: " +
+      e.getMessage()
+    );
   }
 
   public Patient parseForm(
@@ -158,8 +190,7 @@ public class AddPatient extends Application {
         birthField.getValue().toString()
       );
     } catch (Exception e) {
-      // TODO: Use notification pane
-      System.out.println("Error parsing form: " + e.getMessage());
+      notifyError(e);
       return null;
     }
   }
@@ -181,24 +212,12 @@ public class AddPatient extends Application {
   }
 
   public void refocus(Patient patient) {
-    if (
-      activePatient != null &&
-      patient != null &&
-      activePatient.getNik() != patient.getNik()
-    ) {
-      if (primaryStage.isShowing()) {
-        primaryStage.close();
-      }
+    activePatient = patient;
 
-      activePatient = patient;
-      start(primaryStage);
-    } else {
-      if (primaryStage.isShowing()) {
-        primaryStage.requestFocus();
-      } else {
-        activePatient = patient;
-        start(primaryStage);
-      }
-    }
+    start(primaryStage);
+  }
+
+  public Stage getStage() {
+    return primaryStage;
   }
 }
